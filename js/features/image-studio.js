@@ -14,7 +14,18 @@ let currentImage = null;
 let currentOperation = 'resize';
 let originalFile = null;
 let previewUrl = null;
+let resultUrl = null;
 let batchImages = [];
+
+let cropState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    cropArea: null,
+    isMoving: false
+};
 
 export async function renderImageStudio(container) {
     container.innerHTML = `
@@ -24,13 +35,13 @@ export async function renderImageStudio(container) {
             </div>
             
             <div class="image-tabs">
-                <button class="btn ${currentOperation === 'resize' ? 'active' : ''}" data-op="resize">Resize</button>
-                <button class="btn ${currentOperation === 'compress' ? 'active' : ''}" data-op="compress">Compress</button>
-                <button class="btn ${currentOperation === 'crop' ? 'active' : ''}" data-op="crop">Crop</button>
-                <button class="btn ${currentOperation === 'convert' ? 'active' : ''}" data-op="convert">Convert</button>
-                <button class="btn ${currentOperation === 'rotate' ? 'active' : ''}" data-op="rotate">Rotate</button>
-                <button class="btn ${currentOperation === 'flip' ? 'active' : ''}" data-op="flip">Flip</button>
-                <button class="btn ${currentOperation === 'batch' ? 'active' : ''}" data-op="batch">Batch</button>
+                <button type="button" class="btn ${currentOperation === 'resize' ? 'active' : ''}" data-op="resize">Resize</button>
+                <button type="button" class="btn ${currentOperation === 'compress' ? 'active' : ''}" data-op="compress">Compress</button>
+                <button type="button" class="btn ${currentOperation === 'crop' ? 'active' : ''}" data-op="crop">Crop</button>
+                <button type="button" class="btn ${currentOperation === 'convert' ? 'active' : ''}" data-op="convert">Convert</button>
+                <button type="button" class="btn ${currentOperation === 'rotate' ? 'active' : ''}" data-op="rotate">Rotate</button>
+                <button type="button" class="btn ${currentOperation === 'flip' ? 'active' : ''}" data-op="flip">Flip</button>
+                <button type="button" class="btn ${currentOperation === 'batch' ? 'active' : ''}" data-op="batch">Batch</button>
             </div>
             
             <div class="image-workspace">
@@ -39,18 +50,18 @@ export async function renderImageStudio(container) {
                 </div>
                 
                 <div class="image-preview-area" id="image-preview-area" style="display: none;">
-                    <div class="image-preview-header">
-                        <h3 id="image-filename"></h3>
-                        <span id="image-dimensions"></span>
-                        <span id="image-size"></span>
+                    <div class="image-preview-header" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <h3 id="image-filename" style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;"></h3>
+                        <span id="image-dimensions" class="badge"></span>
+                        <span id="image-size" class="badge"></span>
                     </div>
-                    <div class="image-preview" id="image-preview"></div>
-                    <div class="image-actions" id="image-actions"></div>
+                    <div class="image-preview" id="image-preview" style="width: 100%; max-height: 420px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; margin: 15px 0;"></div>
+                    <div class="image-actions" id="image-actions" style="display: flex; gap: 10px; flex-wrap: wrap;"></div>
                 </div>
             </div>
             
             <div class="image-settings" id="image-settings" style="display: none;">
-                <!-- Settings will be rendered based on operation -->
+                <!-- Settings rendered dynamically -->
             </div>
         </div>
     `;
@@ -66,28 +77,38 @@ function createDropzone() {
                 <p>Drop image here</p>
                 <p class="dropzone-spark">✦</p>
                 <p>or</p>
-                <button class="btn btn-primary" id="choose-image-btn">Choose Image</button>
-                <input type="file" id="file-input" accept="image/*" style="display: none;">
+                <button type="button" class="btn btn-primary" id="choose-image-btn">Choose Image</button>
+                <input type="file" id="file-input" accept="image/*" style="display: none;" ${currentOperation === 'batch' ? 'multiple' : ''}>
+                <button type="button" class="btn btn-danger" id="clear-image-btn" style="display: none; margin-top: 10px;">
+                    ✕ Remove Image
+                </button>
             </div>
         </div>
     `;
 }
 
 function setupEventListeners() {
-    // Tab switching
     document.querySelectorAll('.image-tabs .btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentOperation = btn.dataset.op;
             document.querySelectorAll('.image-tabs .btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) {
+                if (currentOperation === 'batch') {
+                    fileInput.setAttribute('multiple', '');
+                } else {
+                    fileInput.removeAttribute('multiple');
+                }
+            }
+
             if (currentImage || batchImages.length > 0) {
                 showSettings();
             }
         });
     });
     
-    // File input
     const chooseImageBtn = document.getElementById('choose-image-btn');
     const fileInput = document.getElementById('file-input');
     
@@ -95,8 +116,12 @@ function setupEventListeners() {
         chooseImageBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileSelect);
     }
-    
-    // Dropzone
+
+    const clearImageBtn = document.getElementById('clear-image-btn');
+    if (clearImageBtn) {
+        clearImageBtn.addEventListener('click', () => clearImage());
+    }
+
     const dropzone = document.getElementById('image-dropzone');
     if (dropzone) {
         dropzone.addEventListener('dragover', (e) => {
@@ -126,7 +151,7 @@ function setupEventListeners() {
 
 async function handleFileSelect(e) {
     const files = e.target.files;
-    if (files.length > 0) {
+    if (files && files.length > 0) {
         if (currentOperation === 'batch') {
             await handleBatchFiles(files);
         } else {
@@ -135,40 +160,106 @@ async function handleFileSelect(e) {
     }
 }
 
+function clearImage() {
+    if (previewUrl) {
+        revokeObjectURL(previewUrl);
+        previewUrl = null;
+    }
+    if (resultUrl) {
+        revokeObjectURL(resultUrl);
+        resultUrl = null;
+    }
+    
+    currentImage = null;
+    originalFile = null;
+    batchImages = [];
+    cropState.cropArea = null;
+    
+    const previewArea = document.getElementById('image-preview-area');
+    const settingsArea = document.getElementById('image-settings');
+    const clearImageBtn = document.getElementById('clear-image-btn');
+    const fileInput = document.getElementById('file-input');
+    const preview = document.getElementById('image-preview');
+    const actions = document.getElementById('image-actions');
+
+    if (previewArea) previewArea.style.display = 'none';
+    if (settingsArea) settingsArea.style.display = 'none';
+    if (clearImageBtn) clearImageBtn.style.display = 'none';
+    if (fileInput) fileInput.value = '';
+    if (preview) preview.innerHTML = '';
+    if (actions) actions.innerHTML = '';
+    
+    toast.info('Image removed');
+}
+
 async function handleFile(file) {
     if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
+        toast.error('Please select a valid image file');
         return;
     }
     
-    // Validate file size (max 50MB)
     if (file.size > 50 * 1024 * 1024) {
         toast.error('File size exceeds 50MB limit');
         return;
     }
     
+    if (previewUrl) revokeObjectURL(previewUrl);
+    if (resultUrl) {
+        revokeObjectURL(resultUrl);
+        resultUrl = null;
+    }
+
     originalFile = file;
     currentImage = file;
-    
-    if (previewUrl) {
-        revokeObjectURL(previewUrl);
-    }
     previewUrl = createObjectURL(file);
     
-    const dimensions = await getImageDimensions(previewUrl);
-    
-    // Update UI
-    document.getElementById('image-preview-area').style.display = 'block';
-    document.getElementById('image-settings').style.display = 'block';
-    document.getElementById('image-filename').textContent = file.name;
-    document.getElementById('image-dimensions').textContent = `${dimensions.width} × ${dimensions.height}`;
-    document.getElementById('image-size').textContent = formatBytes(file.size);
-    
-    const preview = document.getElementById('image-preview');
-    preview.innerHTML = `<img src="${previewUrl}" alt="${file.name}" style="max-width: 100%; max-height: 400px;">`;
-    
-    showSettings();
-    toast.success('Image loaded successfully');
+    try {
+        const dimensions = await getImageDimensions(previewUrl);
+        
+        document.getElementById('image-preview-area').style.display = 'block';
+        document.getElementById('image-settings').style.display = 'block';
+        document.getElementById('image-filename').textContent = file.name;
+        document.getElementById('image-dimensions').textContent = `${dimensions.width} × ${dimensions.height}`;
+        document.getElementById('image-size').textContent = formatBytes(file.size);
+        
+        const previewHeader = document.querySelector('.image-preview-header');
+        if (previewHeader) {
+            const existingBtn = previewHeader.querySelector('.remove-image-btn');
+            if (existingBtn) existingBtn.remove();
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-icon remove-image-btn';
+            removeBtn.innerHTML = '✕';
+            removeBtn.title = 'Remove image';
+            removeBtn.setAttribute('aria-label', 'Remove image');
+            removeBtn.style.cssText = `
+                margin-left: auto;
+                background: rgba(248, 113, 113, 0.15);
+                border: 1px solid rgba(248, 113, 113, 0.4);
+                color: var(--error, #f87171);
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+            removeBtn.onclick = () => clearImage();
+            previewHeader.appendChild(removeBtn);
+        }
+        
+        const clearBtn = document.getElementById('clear-image-btn');
+        if (clearBtn) clearBtn.style.display = 'inline-block';
+        
+        showSettings();
+        toast.success('Image loaded successfully');
+    } catch (error) {
+        toast.error('Failed to load image preview');
+        clearImage();
+    }
 }
 
 async function handleBatchFiles(files) {
@@ -179,16 +270,24 @@ async function handleBatchFiles(files) {
         return;
     }
     
-    // Show batch interface
     document.getElementById('image-preview-area').style.display = 'block';
     document.getElementById('image-settings').style.display = 'block';
     
+    const clearBtn = document.getElementById('clear-image-btn');
+    if (clearBtn) clearBtn.style.display = 'inline-block';
+
+    document.getElementById('image-filename').textContent = `${batchImages.length} images selected`;
+    document.getElementById('image-dimensions').textContent = '';
+    document.getElementById('image-size').textContent = formatBytes(
+        batchImages.reduce((acc, f) => acc + f.size, 0)
+    );
+
     const preview = document.getElementById('image-preview');
     preview.innerHTML = `
-        <div class="batch-list">
+        <div class="batch-list" style="width: 100%; max-height: 300px; overflow-y: auto;">
             ${batchImages.map((file, index) => `
-                <div class="batch-item" data-index="${index}">
-                    <span class="batch-name">${file.name}</span>
+                <div class="batch-item" data-index="${index}" style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <span class="batch-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;">${escapeHtml(file.name)}</span>
                     <span class="batch-size">${formatBytes(file.size)}</span>
                 </div>
             `).join('')}
@@ -196,7 +295,7 @@ async function handleBatchFiles(files) {
     `;
     
     showSettings();
-    toast.success(`${batchImages.length} images loaded`);
+    toast.success(`${batchImages.length} images loaded for batching`);
 }
 
 function showSettings() {
@@ -205,40 +304,53 @@ function showSettings() {
     
     if (!settingsContainer || !actionsContainer) return;
     
+    // Reset preview to original image when switching operations (except crop)
+    if (currentOperation !== 'crop' && currentOperation !== 'batch' && previewUrl) {
+        const preview = document.getElementById('image-preview');
+        preview.innerHTML = `
+            <img src="${previewUrl}" alt="${escapeHtml(originalFile ? originalFile.name : 'Preview')}" 
+                 style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
+        `;
+    }
+
     switch (currentOperation) {
         case 'resize':
             settingsContainer.innerHTML = createResizeSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-resize-btn">Apply Resize</button>';
+            actionsContainer.innerHTML = '<button type="button" class="btn btn-primary" id="apply-resize-btn">Apply Resize</button>';
             setupResizeListeners();
             break;
         case 'compress':
             settingsContainer.innerHTML = createCompressSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-compress-btn">Compress Image</button>';
+            actionsContainer.innerHTML = '<button type="button" class="btn btn-primary" id="apply-compress-btn">Compress Image</button>';
             setupCompressListeners();
             break;
         case 'crop':
             settingsContainer.innerHTML = createCropSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-crop-btn">Apply Crop</button>';
+            actionsContainer.innerHTML = `
+                <button type="button" class="btn btn-primary" id="apply-crop-btn">Apply Crop</button>
+                <button type="button" class="btn" id="reset-crop-btn">Reset Selection</button>
+            `;
             setupCropListeners();
+            initializeInteractiveCrop();
             break;
         case 'convert':
             settingsContainer.innerHTML = createConvertSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-convert-btn">Convert Image</button>';
+            actionsContainer.innerHTML = '<button type="button" class="btn btn-primary" id="apply-convert-btn">Convert Image</button>';
             setupConvertListeners();
             break;
         case 'rotate':
             settingsContainer.innerHTML = createRotateSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-rotate-btn">Apply Rotation</button>';
+            actionsContainer.innerHTML = '<button type="button" class="btn btn-primary" id="apply-rotate-btn">Apply Rotation</button>';
             setupRotateListeners();
             break;
         case 'flip':
             settingsContainer.innerHTML = createFlipSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-flip-btn">Apply Flip</button>';
+            actionsContainer.innerHTML = '<button type="button" class="btn btn-primary" id="apply-flip-btn">Apply Flip</button>';
             setupFlipListeners();
             break;
         case 'batch':
             settingsContainer.innerHTML = createBatchSettings();
-            actionsContainer.innerHTML = '<button class="btn btn-primary" id="apply-batch-btn">Process Batch</button>';
+            actionsContainer.innerHTML = '<button type="button" class="btn btn-primary" id="apply-batch-btn">Process Batch</button>';
             setupBatchListeners();
             break;
     }
@@ -249,17 +361,16 @@ function createResizeSettings() {
         <h3>Resize Image</h3>
         <div class="form-group">
             <label class="form-label">
-                <input type="checkbox" id="maintain-aspect" checked>
-                Maintain aspect ratio
+                <input type="checkbox" id="maintain-aspect" checked> Maintain aspect ratio
             </label>
         </div>
         <div class="form-group">
             <label class="form-label" for="resize-width">Width (px)</label>
-            <input class="form-input" type="number" id="resize-width" placeholder="Auto">
+            <input class="form-input" type="number" id="resize-width" min="1" placeholder="Auto">
         </div>
         <div class="form-group">
             <label class="form-label" for="resize-height">Height (px)</label>
-            <input class="form-input" type="number" id="resize-height" placeholder="Auto">
+            <input class="form-input" type="number" id="resize-height" min="1" placeholder="Auto">
         </div>
     `;
 }
@@ -268,19 +379,18 @@ function setupResizeListeners() {
     const applyBtn = document.getElementById('apply-resize-btn');
     if (applyBtn) {
         applyBtn.addEventListener('click', async () => {
-            const width = parseInt(document.getElementById('resize-width').value);
-            const height = parseInt(document.getElementById('resize-height').value);
+            const width = parseInt(document.getElementById('resize-width').value) || null;
+            const height = parseInt(document.getElementById('resize-height').value) || null;
             const maintainAspect = document.getElementById('maintain-aspect').checked;
             
             if (!width && !height) {
-                toast.error('Please enter width or height');
+                toast.error('Please enter a width or height');
                 return;
             }
             
             try {
-                const canvas = await resizeImage(previewUrl, width || null, height || null, maintainAspect);
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, originalFile.type));
-                
+                const canvas = await resizeImage(previewUrl, width, height, maintainAspect);
+                const blob = await canvasToBlob(canvas, originalFile.type);
                 showResult(canvas, blob, 'resized');
             } catch (error) {
                 toast.error('Failed to resize image: ' + error.message);
@@ -324,11 +434,14 @@ function setupCompressListeners() {
             
             try {
                 const blob = await compressImage(previewUrl, quality, format);
-                const img = await loadImage(URL.createObjectURL(blob));
+                const tempUrl = createObjectURL(blob);
+                const img = await loadImage(tempUrl);
+                
                 const canvas = document.createElement('canvas');
                 canvas.width = img.width;
                 canvas.height = img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
+                revokeObjectURL(tempUrl);
                 
                 showResult(canvas, blob, 'compressed');
             } catch (error) {
@@ -338,55 +451,228 @@ function setupCompressListeners() {
     }
 }
 
+/* ============ INTERACTIVE CROP ============ */
+
 function createCropSettings() {
     return `
-        <h3>Crop Image</h3>
+        <h3>Interactive Crop</h3>
+        <p class="text-muted" style="margin-bottom: 10px;">Drag on the image to select crop area</p>
         <div class="form-group">
             <label class="form-label" for="crop-preset">Aspect Ratio</label>
             <select class="form-select" id="crop-preset">
-                ${Object.entries(CROP_PRESETS).map(([key, preset]) => 
-                    `<option value="${key}">${preset.label}</option>`
-                ).join('')}
+                <option value="free">Free</option>
+                <option value="1:1">1:1 (Square)</option>
+                <option value="4:3">4:3</option>
+                <option value="16:9">16:9</option>
+                <option value="3:2">3:2</option>
+                <option value="9:16">9:16 (Portrait)</option>
             </select>
         </div>
-        <div class="form-group">
-            <label class="form-label" for="crop-x">X</label>
-            <input class="form-input" type="number" id="crop-x" value="0">
-        </div>
-        <div class="form-group">
-            <label class="form-label" for="crop-y">Y</label>
-            <input class="form-input" type="number" id="crop-y" value="0">
-        </div>
-        <div class="form-group">
-            <label class="form-label" for="crop-width">Width</label>
-            <input class="form-input" type="number" id="crop-width">
-        </div>
-        <div class="form-group">
-            <label class="form-label" for="crop-height">Height</label>
-            <input class="form-input" type="number" id="crop-height">
+    `;
+}
+
+function initializeInteractiveCrop() {
+    const preview = document.getElementById('image-preview');
+    if (!preview || !currentImage || !previewUrl) return;
+    
+    preview.innerHTML = `
+        <div class="crop-container" id="crop-container" style="position: relative; display: inline-block;">
+            <img src="${previewUrl}" id="crop-image" alt="Crop" style="max-width: 100%; max-height: 400px; display: block;">
+            <div class="crop-overlay" id="crop-overlay" style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                cursor: crosshair;
+            ">
+                <div class="crop-selection" id="crop-selection" style="
+                    position: absolute;
+                    border: 2px solid var(--pink, #ff2bd6);
+                    background: rgba(255, 43, 214, 0.1);
+                    display: none;
+                    cursor: move;
+                    box-shadow: 0 0 0 1px rgba(255, 43, 214, 0.3);
+                "></div>
+            </div>
         </div>
     `;
+    
+    const cropOverlay = document.getElementById('crop-overlay');
+    const cropSelection = document.getElementById('crop-selection');
+    
+    cropState = {
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        cropArea: null,
+        isMoving: false
+    };
+    
+    // Mouse events
+    cropOverlay.addEventListener('mousedown', startCrop);
+    document.addEventListener('mousemove', updateCrop);
+    document.addEventListener('mouseup', endCrop);
+    
+    // Touch events
+    cropOverlay.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    
+    // Reset crop button
+    const resetBtn = document.getElementById('reset-crop-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            cropSelection.style.display = 'none';
+            cropState.cropArea = null;
+        });
+    }
+}
+
+function startCrop(e) {
+    const cropOverlay = document.getElementById('crop-overlay');
+    const cropSelection = document.getElementById('crop-selection');
+    if (!cropOverlay || !cropSelection) return;
+    
+    const rect = cropOverlay.getBoundingClientRect();
+    
+    cropState.isDragging = true;
+    cropState.startX = e.clientX - rect.left;
+    cropState.startY = e.clientY - rect.top;
+    
+    cropSelection.style.display = 'block';
+    cropSelection.style.left = cropState.startX + 'px';
+    cropSelection.style.top = cropState.startY + 'px';
+    cropSelection.style.width = '0px';
+    cropSelection.style.height = '0px';
+}
+
+function updateCrop(e) {
+    if (!cropState.isDragging) return;
+    
+    const cropOverlay = document.getElementById('crop-overlay');
+    const cropSelection = document.getElementById('crop-selection');
+    const cropImage = document.getElementById('crop-image');
+    if (!cropOverlay || !cropSelection || !cropImage) return;
+    
+    const rect = cropOverlay.getBoundingClientRect();
+    
+    cropState.currentX = e.clientX - rect.left;
+    cropState.currentY = e.clientY - rect.top;
+    
+    let x = Math.min(cropState.startX, cropState.currentX);
+    let y = Math.min(cropState.startY, cropState.currentY);
+    let width = Math.abs(cropState.currentX - cropState.startX);
+    let height = Math.abs(cropState.currentY - cropState.startY);
+    
+    // Apply aspect ratio if selected
+    const preset = document.getElementById('crop-preset').value;
+    if (preset !== 'free') {
+        const ratio = getAspectRatio(preset);
+        if (width / height > ratio) {
+            width = height * ratio;
+        } else {
+            height = width / ratio;
+        }
+    }
+    
+    // Constrain to image bounds
+    const imageRect = cropImage.getBoundingClientRect();
+    const maxWidth = imageRect.width;
+    const maxHeight = imageRect.height;
+    
+    if (x + width > maxWidth) width = maxWidth - x;
+    if (y + height > maxHeight) height = maxHeight - y;
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    
+    cropSelection.style.left = x + 'px';
+    cropSelection.style.top = y + 'px';
+    cropSelection.style.width = width + 'px';
+    cropSelection.style.height = height + 'px';
+    
+    cropState.cropArea = { x, y, width, height };
+}
+
+function endCrop() {
+    cropState.isDragging = false;
+    
+    // Hide selection if too small
+    if (cropState.cropArea && (cropState.cropArea.width < 10 || cropState.cropArea.height < 10)) {
+        const cropSelection = document.getElementById('crop-selection');
+        if (cropSelection) cropSelection.style.display = 'none';
+        cropState.cropArea = null;
+    }
+}
+
+function getAspectRatio(preset) {
+    const ratios = {
+        '1:1': 1,
+        '4:3': 4/3,
+        '16:9': 16/9,
+        '3:2': 3/2,
+        '9:16': 9/16
+    };
+    return ratios[preset] || 1;
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    startCrop(mouseEvent);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    updateCrop(mouseEvent);
+}
+
+function handleTouchEnd() {
+    endCrop();
 }
 
 function setupCropListeners() {
     const applyBtn = document.getElementById('apply-crop-btn');
     if (applyBtn) {
         applyBtn.addEventListener('click', async () => {
-            const preset = document.getElementById('crop-preset').value;
-            const x = parseInt(document.getElementById('crop-x').value) || 0;
-            const y = parseInt(document.getElementById('crop-y').value) || 0;
-            const width = parseInt(document.getElementById('crop-width').value);
-            const height = parseInt(document.getElementById('crop-height').value);
-            
-            if (!width || !height) {
-                toast.error('Please enter crop dimensions');
+            if (!cropState.cropArea) {
+                toast.error('Please drag on the image to select crop area first');
                 return;
             }
             
+            const cropImageEl = document.getElementById('crop-image');
+            if (!cropImageEl) return;
+            
+            // Convert screen coordinates to natural image coordinates
+            const displayedWidth = cropImageEl.getBoundingClientRect().width;
+            const displayedHeight = cropImageEl.getBoundingClientRect().height;
+            const naturalWidth = cropImageEl.naturalWidth;
+            const naturalHeight = cropImageEl.naturalHeight;
+            
+            const scaleX = naturalWidth / displayedWidth;
+            const scaleY = naturalHeight / displayedHeight;
+            
+            const cropArea = {
+                x: Math.round(cropState.cropArea.x * scaleX),
+                y: Math.round(cropState.cropArea.y * scaleY),
+                width: Math.round(cropState.cropArea.width * scaleX),
+                height: Math.round(cropState.cropArea.height * scaleY)
+            };
+            
             try {
-                const canvas = await cropImage(previewUrl, { x, y, width, height });
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, originalFile.type));
-                
+                const canvas = await cropImage(previewUrl, cropArea);
+                const blob = await canvasToBlob(canvas, originalFile.type);
                 showResult(canvas, blob, 'cropped');
             } catch (error) {
                 toast.error('Failed to crop image: ' + error.message);
@@ -395,9 +681,10 @@ function setupCropListeners() {
     }
 }
 
+/* ============ CONVERT ============ */
+
 function createConvertSettings() {
     const formats = getAvailableFormats();
-    
     return `
         <h3>Convert Image</h3>
         <div class="form-group">
@@ -419,11 +706,14 @@ function setupConvertListeners() {
             
             try {
                 const blob = await convertImage(previewUrl, format);
-                const img = await loadImage(URL.createObjectURL(blob));
+                const tempUrl = createObjectURL(blob);
+                const img = await loadImage(tempUrl);
+                
                 const canvas = document.createElement('canvas');
                 canvas.width = img.width;
                 canvas.height = img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
+                revokeObjectURL(tempUrl);
                 
                 showResult(canvas, blob, 'converted');
             } catch (error) {
@@ -433,15 +723,17 @@ function setupConvertListeners() {
     }
 }
 
+/* ============ ROTATE ============ */
+
 function createRotateSettings() {
     return `
         <h3>Rotate Image</h3>
         <div class="form-group">
             <label class="form-label">Rotation Angle</label>
             <div class="button-group">
-                <button class="btn" data-angle="90">90°</button>
-                <button class="btn" data-angle="180">180°</button>
-                <button class="btn" data-angle="270">270°</button>
+                <button type="button" class="btn active" data-angle="90">90°</button>
+                <button type="button" class="btn" data-angle="180">180°</button>
+                <button type="button" class="btn" data-angle="270">270°</button>
             </div>
         </div>
     `;
@@ -463,8 +755,7 @@ function setupRotateListeners() {
         applyBtn.addEventListener('click', async () => {
             try {
                 const canvas = await rotateImage(previewUrl, selectedAngle);
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, originalFile.type));
-                
+                const blob = await canvasToBlob(canvas, originalFile.type);
                 showResult(canvas, blob, 'rotated');
             } catch (error) {
                 toast.error('Failed to rotate image: ' + error.message);
@@ -473,14 +764,16 @@ function setupRotateListeners() {
     }
 }
 
+/* ============ FLIP ============ */
+
 function createFlipSettings() {
     return `
         <h3>Flip Image</h3>
         <div class="form-group">
             <label class="form-label">Flip Direction</label>
             <div class="button-group">
-                <button class="btn active" data-direction="horizontal">Horizontal</button>
-                <button class="btn" data-direction="vertical">Vertical</button>
+                <button type="button" class="btn active" data-direction="horizontal">Horizontal</button>
+                <button type="button" class="btn" data-direction="vertical">Vertical</button>
             </div>
         </div>
     `;
@@ -502,8 +795,7 @@ function setupFlipListeners() {
         applyBtn.addEventListener('click', async () => {
             try {
                 const canvas = await flipImage(previewUrl, selectedDirection);
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, originalFile.type));
-                
+                const blob = await canvasToBlob(canvas, originalFile.type);
                 showResult(canvas, blob, 'flipped');
             } catch (error) {
                 toast.error('Failed to flip image: ' + error.message);
@@ -511,6 +803,8 @@ function setupFlipListeners() {
         });
     }
 }
+
+/* ============ BATCH ============ */
 
 function createBatchSettings() {
     return `
@@ -524,7 +818,7 @@ function createBatchSettings() {
             </select>
         </div>
         <div class="form-group" id="batch-compress-settings">
-            <label class="form-label" for="batch-quality">Quality</label>
+            <label class="form-label" for="batch-quality">Quality: <span id="batch-quality-value">80%</span></label>
             <input class="form-input" type="range" id="batch-quality" min="10" max="100" value="80">
         </div>
         <div class="form-group" id="batch-convert-settings" style="display: none;">
@@ -536,8 +830,8 @@ function createBatchSettings() {
             </select>
         </div>
         <div class="form-group" id="batch-resize-settings" style="display: none;">
-            <label class="form-label" for="batch-width">Max Width</label>
-            <input class="form-input" type="number" id="batch-width" placeholder="e.g., 1920">
+            <label class="form-label" for="batch-width">Max Width (px)</label>
+            <input class="form-input" type="number" id="batch-width" placeholder="e.g., 1920" min="1">
         </div>
     `;
 }
@@ -555,11 +849,24 @@ function setupBatchListeners() {
         });
     }
     
+    const qualitySlider = document.getElementById('batch-quality');
+    const qualityValue = document.getElementById('batch-quality-value');
+    if (qualitySlider && qualityValue) {
+        qualitySlider.addEventListener('input', () => {
+            qualityValue.textContent = qualitySlider.value + '%';
+        });
+    }
+    
     const applyBtn = document.getElementById('apply-batch-btn');
     if (applyBtn) {
         applyBtn.addEventListener('click', async () => {
             const operation = document.getElementById('batch-operation').value;
             
+            if (!batchImages || batchImages.length === 0) {
+                toast.error('No images loaded for batch processing');
+                return;
+            }
+
             try {
                 for (const file of batchImages) {
                     const url = createObjectURL(file);
@@ -572,15 +879,14 @@ function setupBatchListeners() {
                         const format = document.getElementById('batch-format').value;
                         resultBlob = await convertImage(url, format);
                     } else if (operation === 'resize') {
-                        const width = parseInt(document.getElementById('batch-width').value);
-                        const canvas = await resizeImage(url, width || null, null, true);
-                        resultBlob = await new Promise(resolve => canvas.toBlob(resolve, file.type));
+                        const width = parseInt(document.getElementById('batch-width').value) || null;
+                        const canvas = await resizeImage(url, width, null, true);
+                        resultBlob = await canvasToBlob(canvas, file.type);
                     }
                     
                     if (resultBlob) {
-                        const fileName = file.name.replace(/\.[^.]+$/, '') + '_processed.' + 
-                                        (operation === 'convert' ? getFileExtension(document.getElementById('batch-format').value) : 
-                                         file.name.split('.').pop());
+                        const targetFormat = operation === 'convert' ? document.getElementById('batch-format').value : file.type;
+                        const fileName = file.name.replace(/\.[^.]+$/, '') + '_processed.' + getFileExtension(targetFormat);
                         downloadBlob(resultBlob, fileName);
                     }
                     
@@ -596,29 +902,35 @@ function setupBatchListeners() {
     }
 }
 
+/* ============ RESULT ============ */
+
 function showResult(canvas, blob, operation) {
-    const resultUrl = createObjectURL(blob);
-    const preview = document.getElementById('image-preview');
+    if (resultUrl) revokeObjectURL(resultUrl);
+    resultUrl = createObjectURL(blob);
     
+    const preview = document.getElementById('image-preview');
+    const sizeDiff = originalFile.size - blob.size;
+    const diffText = sizeDiff >= 0 
+        ? `Saved: ${formatBytes(sizeDiff)} (${((sizeDiff / originalFile.size) * 100).toFixed(1)}%)`
+        : `Increased by: ${formatBytes(Math.abs(sizeDiff))}`;
+
     preview.innerHTML = `
-        <img src="${resultUrl}" alt="Result" style="max-width: 100%; max-height: 400px;">
-        <div class="result-info">
-            <p>Original: ${formatBytes(originalFile.size)}</p>
-            <p>Result: ${formatBytes(blob.size)}</p>
-            <p>Saved: ${formatBytes(originalFile.size - blob.size)} (${((originalFile.size - blob.size) / originalFile.size * 100).toFixed(1)}%)</p>
+        <img src="${resultUrl}" alt="Result" style="max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px;">
+        <div class="result-info" style="margin-top: 10px; text-align: center; font-size: 0.9em; opacity: 0.9;">
+            <p style="margin: 2px 0;">Original: ${formatBytes(originalFile.size)} | Result: ${formatBytes(blob.size)}</p>
+            <p style="margin: 2px 0;">${diffText}</p>
         </div>
     `;
     
     const actionsContainer = document.getElementById('image-actions');
     actionsContainer.innerHTML = `
-        <button class="btn btn-primary" id="download-result-btn">Download Result</button>
-        <button class="btn" id="reset-image-btn">Reset</button>
+        <button type="button" class="btn btn-primary" id="download-result-btn">Download Result</button>
+        <button type="button" class="btn" id="reset-image-btn">Reset</button>
+        <button type="button" class="btn btn-danger" id="remove-image-btn">Remove Image</button>
     `;
     
     document.getElementById('download-result-btn').addEventListener('click', () => {
-        const extension = blob.type === 'image/jpeg' ? 'jpg' : 
-                        blob.type === 'image/png' ? 'png' : 
-                        blob.type === 'image/webp' ? 'webp' : 'img';
+        const extension = getFileExtension(blob.type);
         const fileName = originalFile.name.replace(/\.[^.]+$/, '') + '_' + operation + '.' + extension;
         downloadBlob(blob, fileName);
         toast.success('Image downloaded!');
@@ -628,4 +940,36 @@ function showResult(canvas, blob, operation) {
     document.getElementById('reset-image-btn').addEventListener('click', () => {
         handleFile(originalFile);
     });
+
+    document.getElementById('remove-image-btn').addEventListener('click', () => {
+        clearImage();
+    });
+}
+
+/* ============ UTILITIES ============ */
+
+function canvasToBlob(canvas, type = 'image/png') {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+            if (blob) resolve(blob);
+            else reject(new Error('Canvas to Blob conversion failed'));
+        }, type);
+    });
+}
+
+function getFileExtension(mimeType) {
+    switch (mimeType) {
+        case 'image/jpeg': return 'jpg';
+        case 'image/png': return 'png';
+        case 'image/webp': return 'webp';
+        default: return 'img';
+    }
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }

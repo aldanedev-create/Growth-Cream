@@ -98,8 +98,9 @@ async function loadProjects() {
         // Attach click listeners
         document.querySelectorAll('.project-card').forEach(card => {
             card.addEventListener('click', () => {
+                document.querySelectorAll('.project-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
                 selectedProjectId = card.dataset.projectId;
-                loadProjects();
                 showProjectDetails(selectedProjectId);
             });
         });
@@ -216,10 +217,10 @@ async function showProjectDetails(projectId) {
         </div>
     `;
     
-    attachProjectDetailListeners(project);
+    attachProjectDetailListeners(detailsContainer, project);
 }
 
-function attachProjectDetailListeners(project) {
+function attachProjectDetailListeners(detailsContainer, project) {
     // Edit project
     const editBtn = detailsContainer.querySelector('.edit-project-btn');
     if (editBtn) {
@@ -248,6 +249,7 @@ function attachProjectDetailListeners(project) {
             await updateProject(project.id, { progress: newProgress });
             
             await showProjectDetails(project.id);
+            await loadProjects();
         });
     });
     
@@ -263,6 +265,7 @@ function attachProjectDetailListeners(project) {
             await updateProject(project.id, { progress: newProgress });
             
             await showProjectDetails(project.id);
+            await loadProjects();
         });
     });
     

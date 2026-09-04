@@ -1,21 +1,50 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
-    .main-content {
-        margin-left: 0;
-        padding: var(--space-4);
-        padding-bottom: 80px;
+    /* Global scroll & box sizing safeguards */
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
     }
 
+    /* Enforce strict box-sizing on everything to prevent padding from causing overflow */
+    * {
+        box-sizing: border-box;
+    }
+
+    /* Main container padding - clears bottom floating navigation bar */
+    .main-content,
+    .image-studio-container {
+        margin-left: 0;
+        padding: var(--space-3, 12px);
+        padding-bottom: 120px !important; /* Increased for bottom nav */
+        width: 100%;
+        max-width: 100vw;
+    }
+
+    /* Layout & Grid standard overrides */
     .grid-2,
     .grid-3,
     .grid-4 {
         grid-template-columns: 1fr;
     }
 
+    /* CARD FIXES: Prevent right-side clipping */
+    .growth-hero,
+    .project-card,
+    .card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin-left: 0;
+        margin-right: 0;
+        overflow: hidden; /* Keep internal elements from breaking the card */
+    }
+
     .section-header {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-3);
+        width: 100%;
     }
 
     .section-title {
@@ -23,32 +52,85 @@
     }
 
     .growth-hero {
-        padding: var(--space-5) var(--space-4);
+        padding: var(--space-4) var(--space-3); /* Slightly reduced horizontal padding */
     }
 
     .growth-hero-top {
         gap: var(--space-4);
+        width: 100%;
     }
 
     .growth-ring {
         --ring-size: 104px;
+        flex-shrink: 0; /* Prevent the ring from being squished */
     }
 
     .score-number {
         font-size: var(--font-size-2xl);
     }
 
+    /* Adjust list items to not overflow */
     .growth-item {
         grid-template-columns: 1.25rem 4.25rem 1fr 2.25rem;
         gap: var(--space-2);
+        width: 100%;
     }
 
     .stat-tile {
         padding: var(--space-3);
+        width: 100%;
     }
 
     .quick-action {
         min-width: 100px;
+    }
+
+    .project-card-header,
+    .image-preview-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    /* NAVIGATION FIXES: Prevent vertical text splitting */
+    /* Target your bottom navigation container/links */
+    nav, .bottom-nav, .sidebar {
+        overflow-x: auto; /* Enable horizontal swiping if items exceed screen width */
+        overflow-y: hidden;
+        flex-wrap: nowrap !important; /* Prevent items from wrapping to a new line */
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        scrollbar-width: none; /* Hide scrollbar for cleaner look */
+    }
+
+    nav::-webkit-scrollbar, .bottom-nav::-webkit-scrollbar, .sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Target the text inside the navigation items */
+    nav a span, .bottom-nav a span, .sidebar a span, .nav-item span {
+        word-break: normal !important; /* Stop breaking mid-word */
+        white-space: nowrap !important; /* Keep text on one line */
+        font-size: 0.65rem; /* Slightly smaller text */
+        display: block;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Target the nav items themselves to ensure they have enough room */
+    nav a, .bottom-nav a, .sidebar a, .nav-item {
+        min-width: 55px; /* Guarantee a minimum width per item */
+        padding: 8px 4px !important;
+        flex: 0 0 auto; /* Don't allow flexbox to shrink them smaller than min-width */
+    }
+
+    /* Prevent long title overflows elsewhere */
+    p, h2, h3 {
+        word-break: break-word;
+        overflow-wrap: break-word;
     }
 }
 
@@ -58,6 +140,16 @@
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .image-tabs .btn,
+    .image-actions .btn {
+        flex: 1 1 100%;
+    }
+    
+    /* Further scale down nav text for extra small screens */
+    nav a span, .bottom-nav a span, .sidebar a span, .nav-item span {
+        font-size: 0.6rem;
+    }
 }
 
 /* Tablet */
@@ -65,6 +157,7 @@
     .main-content {
         margin-left: 200px;
         padding: var(--space-4);
+        padding-bottom: 40px;
     }
 
     .grid-3,
