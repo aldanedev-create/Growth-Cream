@@ -1,5 +1,6 @@
 import { router } from './router.js';
 import { openDatabase } from './db/database.js';
+import { getSetting } from './db/storage-db.js';
 import { renderNavbar } from './components/navbar.js';
 import { renderDashboard } from './features/dashboard.js';
 import { renderHabits } from './features/habits.js';
@@ -7,7 +8,7 @@ import { renderProjects } from './features/projects.js';
 import { renderGoals } from './features/goals.js';
 import { renderImageStudio } from './features/image-studio.js';
 import { renderStorageTracker } from './features/storage-tracker.js';
-import { renderSettings } from './features/settings.js';
+import { renderSettings, applyTheme } from './features/settings.js';
 import { toast } from './components/toast.js';
 
 // Initialize application
@@ -16,6 +17,10 @@ async function initApp() {
         // Open database
         await openDatabase();
         console.log('Database initialized');
+        
+        // Apply saved theme (defaults to dark if none saved yet)
+        const savedTheme = await getSetting('theme');
+        applyTheme(savedTheme || 'dark');
         
         // Setup router
         setupRouter();

@@ -1,4 +1,190 @@
-/* Navigation */
+/* ==========================================================================
+   Core components — card, buttons, forms, modal, toast
+   ========================================================================== */
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: 0.6rem 1.1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast),
+                color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn:hover {
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--pink);
+    outline-offset: 2px;
+}
+
+.btn.active {
+    background: var(--pink);
+    border-color: var(--pink);
+    color: #fff;
+}
+
+.btn-primary {
+    background: var(--pink);
+    border-color: var(--pink);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--pink-dark);
+    border-color: var(--pink-dark);
+}
+
+.btn-danger {
+    background: transparent;
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.btn-danger:hover {
+    background: var(--error);
+    color: #fff;
+}
+
+.btn-success {
+    background: transparent;
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.btn-success:hover {
+    background: var(--success);
+    color: #0c0d12;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.75rem;
+    font-size: var(--font-size-xs);
+}
+
+.btn-icon {
+    padding: 0.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-muted);
+}
+
+.btn-icon:hover {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: var(--space-4);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text);
+    font-size: var(--font-size-base);
+}
+
+.form-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px var(--glow);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: var(--text-dim);
+}
+
+/* Modal (structural classes; inline styles in modal.js handle positioning) */
+.modal h2 {
+    color: var(--text);
+}
+
+/* Toast */
+.toast-success span:first-child { color: var(--success); }
+.toast-error span:first-child { color: var(--error); }
+.toast-warning span:first-child { color: var(--warning); }
+.toast-info span:first-child { color: var(--info); }
+
+/* Progress bar (shared by dashboard, projects, goals) */
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--surface-3);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pink-dark), var(--pink));
+    border-radius: var(--radius-full);
+    transition: width var(--transition-slow);
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--space-6) var(--space-3);
+    color: var(--text-muted);
+}
+
+.empty-state p {
+    margin-bottom: var(--space-3);
+}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+
 .navbar {
     position: fixed;
     top: 0;
@@ -442,4 +628,282 @@
     justify-content: space-between;
     padding: var(--space-2);
     border-bottom: 1px solid var(--border);
+}
+/* ==========================================================================
+   Dashboard
+   ========================================================================== */
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    max-width: 980px;
+}
+
+.dashboard-header {
+    margin-bottom: 0;
+}
+
+.dashboard-greeting {
+    margin-top: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--font-size-base);
+}
+
+/* Hero growth card — the one bold element on the page */
+.growth-hero {
+    background: linear-gradient(155deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-glow);
+    position: relative;
+    overflow: hidden;
+}
+
+.growth-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-personal), var(--accent-projects), var(--accent-goals));
+}
+
+.growth-hero-copy {
+    flex: 1;
+    min-width: 200px;
+}
+
+.growth-hero h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin-bottom: var(--space-1);
+}
+
+.growth-hero-sub {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    max-width: 32ch;
+}
+
+.growth-hero-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.growth-ring {
+    --ring-size: 132px;
+    width: var(--ring-size);
+    height: var(--ring-size);
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: conic-gradient(var(--pink) calc(var(--score, 0) * 3.6deg), var(--surface-3) 0deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.growth-ring::before {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    background: var(--surface);
+}
+
+.growth-ring-value {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.score-number {
+    font-size: var(--font-size-3xl);
+    font-weight: 800;
+    color: var(--text);
+}
+
+.score-total {
+    font-size: var(--font-size-xs);
+    color: var(--text-dim);
+}
+
+.growth-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.growth-item {
+    display: grid;
+    grid-template-columns: 1.5rem 6rem 1fr 2.5rem;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.growth-icon {
+    font-size: var(--font-size-lg);
+    text-align: center;
+}
+
+.growth-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.growth-value {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-align: right;
+    color: var(--text);
+}
+
+.growth-item[data-category="personal"] .progress-bar-fill { background: var(--accent-personal); }
+.growth-item[data-category="projects"] .progress-bar-fill { background: var(--accent-projects); }
+.growth-item[data-category="goals"] .progress-bar-fill { background: var(--accent-goals); }
+
+/* Stat row — quiet, flat tiles (deliberately not styled like .card, to
+   keep the hero card as the one strong visual moment) */
+.stat-tile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.stat-tile:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+}
+
+.stat-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-lg);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+}
+
+.stat-value {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Recent / goals panels — list structure instead of another card-in-card */
+.dashboard-sections {
+    align-items: start;
+}
+
+.recent-section,
+.goals-section {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.recent-section h3,
+.goals-section h3 {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--space-1);
+}
+
+.recent-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.recent-item:last-child {
+    border-bottom: none;
+}
+
+.recent-icon {
+    font-size: var(--font-size-lg);
+    flex-shrink: 0;
+}
+
+.recent-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.recent-title {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-meta {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.recent-item .progress-bar {
+    flex: none;
+    width: 56px;
+}
+
+/* Quick actions */
+.quick-actions {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.quick-actions h3 {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    margin-bottom: var(--space-3);
+}
+
+.quick-actions-grid {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.quick-action {
+    flex: 1;
+    min-width: 140px;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background: var(--surface);
+}
+
+.quick-action span:first-child {
+    font-size: var(--font-size-xl);
 }

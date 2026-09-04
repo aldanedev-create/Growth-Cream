@@ -1,26 +1,32 @@
 :root {
-    /* Core palette */
-    --bg: #0b0610;
-    --surface: #130a18;
-    --surface-2: #1b0d22;
-    --surface-3: #23102b;
+    /* Core palette — neutral charcoal base so color reads intentional, not just dark-mode-by-default */
+    --bg: #0c0d12;
+    --surface: #15161d;
+    --surface-2: #1b1d26;
+    --surface-3: #23252f;
 
-    /* Pink accents */
-    --pink: #ff2bd6;
-    --pink-light: #ff72e7;
-    --pink-dark: #c900a8;
-    --neon: #ff3de1;
+    /* Brand accent — refined magenta-pink (was neon/oversaturated) */
+    --pink: #ec4899;
+    --pink-light: #f472b6;
+    --pink-dark: #be185d;
+    --neon: #f472b6;
+
+    /* Category accents — give Personal / Projects / Goals their own identity
+       instead of everything being the same pink */
+    --accent-personal: #34d399;
+    --accent-projects: #60a5fa;
+    --accent-goals: #fbbf24;
 
     /* Text */
-    --text: #fff5fc;
-    --text-muted: #c9aec4;
-    --text-dim: #8f7a8a;
+    --text: #f5f5f7;
+    --text-muted: #9a9aa5;
+    --text-dim: #6c6d78;
 
-    /* Borders & effects */
-    --border: rgba(255, 43, 214, 0.22);
-    --border-strong: rgba(255, 43, 214, 0.45);
-    --glow: rgba(255, 43, 214, 0.35);
-    --glow-strong: rgba(255, 43, 214, 0.6);
+    /* Borders & effects — neutral, not pink-tinted, so it reads as structure not decoration */
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --glow: rgba(236, 72, 153, 0.25);
+    --glow-strong: rgba(236, 72, 153, 0.45);
 
     /* Status colors */
     --success: #4ade80;
@@ -39,7 +45,7 @@
     --space-10: 4rem;
 
     /* Typography */
-    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -54,6 +60,7 @@
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
     --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
     --radius-full: 9999px;
 
     /* Transitions */
@@ -61,40 +68,43 @@
     --transition-base: 250ms ease;
     --transition-slow: 400ms ease;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 20px var(--glow);
+    /* Shadows — soft and neutral, reserved for elements that should lift */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.32);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 0 1px var(--glow), 0 12px 32px -8px var(--glow-strong);
 }
 
 /* Dark theme (default) */
 [data-theme="dark"] {
-    --bg: #0b0610;
-    --surface: #130a18;
-    --surface-2: #1b0d22;
-    --surface-3: #23102b;
+    --bg: #0c0d12;
+    --surface: #15161d;
+    --surface-2: #1b1d26;
+    --surface-3: #23252f;
 }
 
 /* Light theme */
 [data-theme="light"] {
-    --bg: #fef5fc;
-    --surface: #fff;
-    --surface-2: #fdf0fa;
-    --surface-3: #fce7f7;
-    --pink: #e600b8;
-    --pink-light: #ff5cd9;
-    --pink-dark: #b80093;
-    --neon: #ff1ad6;
-    --text: #1a0a15;
-    --text-muted: #5c4552;
-    --text-dim: #8f7a8a;
-    --border: rgba(230, 0, 184, 0.2);
-    --border-strong: rgba(230, 0, 184, 0.4);
-    --glow: rgba(230, 0, 184, 0.25);
-    --glow-strong: rgba(230, 0, 184, 0.5);
-    --shadow-sm: 0 1px 2px rgba(230, 0, 184, 0.1);
-    --shadow-md: 0 4px 6px rgba(230, 0, 184, 0.15);
-    --shadow-lg: 0 10px 15px rgba(230, 0, 184, 0.2);
-    --shadow-glow: 0 0 20px var(--glow);
+    --bg: #faf9fb;
+    --surface: #ffffff;
+    --surface-2: #f4f2f6;
+    --surface-3: #ece8ef;
+    --pink: #db2777;
+    --pink-light: #ec4899;
+    --pink-dark: #9d174d;
+    --neon: #ec4899;
+    --accent-personal: #059669;
+    --accent-projects: #2563eb;
+    --accent-goals: #d97706;
+    --text: #16161a;
+    --text-muted: #5c5c68;
+    --text-dim: #8a8a94;
+    --border: rgba(16, 16, 20, 0.1);
+    --border-strong: rgba(16, 16, 20, 0.18);
+    --glow: rgba(219, 39, 119, 0.15);
+    --glow-strong: rgba(219, 39, 119, 0.3);
+    --shadow-sm: 0 1px 2px rgba(16, 16, 20, 0.06);
+    --shadow-md: 0 6px 16px rgba(16, 16, 20, 0.08);
+    --shadow-lg: 0 16px 40px rgba(16, 16, 20, 0.12);
+    --shadow-glow: 0 0 0 1px var(--glow), 0 12px 32px -8px var(--glow-strong);
 }

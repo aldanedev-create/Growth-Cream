@@ -6,7 +6,7 @@ import { getAllStorageDevices, getAllStorageSnapshots } from '../db/storage-db.j
 import { modal } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { downloadText } from '../utils/download.js';
-import { clearStore } from '../db/database.js';
+import { clearStore, updateRecord } from '../db/database.js';
 
 export async function renderSettings(container) {
     const settings = await getAllSettings();
@@ -103,7 +103,7 @@ function setupEventListeners() {
     }
 }
 
-function applyTheme(theme) {
+export function applyTheme(theme) {
     if (theme === 'system') {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
