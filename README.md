@@ -6,7 +6,7 @@ A local-first productivity and utility Progressive Web App (PWA) that combines p
 
 ![Growth Cream](https://img.shields.io/badge/PWA-Ready-pink)
 ![Offline-First](https://img.shields.io/badge/Offline-First-green)
-![No-Backend](https://img.shields.io/badge/No-Backend-Required-blue)
+![No Backend Required](https://shields.io)
 ![Vanilla-JS](https://img.shields.io/badge/Vanilla-JS-yellow)
 
 ## 📑 Table of Contents
