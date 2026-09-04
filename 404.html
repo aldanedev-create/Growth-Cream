@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Page not found - Growth Cream">
+    <meta name="theme-color" content="#0b0610">
+    <title>404 - Page Not Found | Growth Cream</title>
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/themes.css">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .error-sparkles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .sparkle {
+            position: absolute;
+            color: var(--pink);
+            animation: floatSparkle 3s ease-in-out infinite;
+            font-size: 1.5rem;
+            opacity: 0.5;
+        }
+        
+        @keyframes floatSparkle {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translateY(-20px) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+        
+        .error-content {
+            position: relative;
+            z-index: 2;
+            max-width: 600px;
+        }
+        
+        .error-code {
+            font-size: 6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--pink-light), var(--pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .error-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        
+        .error-message {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .growth-spark {
+            display: inline-block;
+            animation: spark 0.6s ease-out infinite;
+            color: var(--pink);
+            font-size: 1.5rem;
+        }
+        
+        @keyframes spark {
+            0% {
+                opacity: 0;
+                transform: scale(0.4) translateY(4px);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.2) translateY(-18px);
+            }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .error-code,
+            .sparkle,
+            .growth-spark {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-sparkles" id="error-sparkles"></div>
+        
+        <div class="error-content">
+            <div class="error-icon">🌱</div>
+            <div class="error-code">404</div>
+            <h1 class="error-title">Page Not Found</h1>
+            <p class="error-message">
+                Oops! This page seems to have withered away. 
+                <span class="growth-spark">✦</span>
+                But don't worry, your growth journey continues!
+            </p>
+            
+            <div class="error-actions">
+                <button class="btn btn-primary" onclick="window.location.href='/'">
+                    <span>🏠</span>
+                    Back to Dashboard
+                </button>
+                <button class="btn" onclick="window.history.back()">
+                    <span>←</span>
+                    Go Back
+                </button>
+            </div>
+            
+            <p style="margin-top: 3rem; color: var(--text-dim); font-size: 0.875rem;">
+                <span style="color: var(--pink);">✦</span>
+                Every setback is a setup for growth
+                <span style="color: var(--pink);">✦</span>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Create floating sparkles
+        function createSparkles() {
+            const container = document.getElementById('error-sparkles');
+            const sparkleSymbols = ['✦', '✧', '·', '+', '•'];
+            
+            for (let i = 0; i < 15; i++) {
+                const sparkle = document.createElement('span');
+                sparkle.className = 'sparkle';
+                sparkle.textContent = sparkleSymbols[Math.floor(Math.random() * sparkleSymbols.length)];
+                
+                sparkle.style.left = (Math.random() * 100) + '%';
+                sparkle.style.top = (Math.random() * 100) + '%';
+                sparkle.style.animationDelay = (Math.random() * 3) + 's';
+                sparkle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                sparkle.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
+                
+                container.appendChild(sparkle);
+            }
+        }
+        
+        // Respect reduced motion preference
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!prefersReducedMotion) {
+            createSparkles();
+        }
+        
+        // Handle theme
+        function applyTheme() {
+            const savedTheme = localStorage.getItem('growth-cream-theme') || 'dark';
+            if (savedTheme === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        }
+        
+        applyTheme();
+        
+        // Listen for theme changes from system
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (localStorage.getItem('growth-cream-theme') === 'system') {
+                applyTheme();
+            }
+        });
+    </script>
+</body>
+</html>
